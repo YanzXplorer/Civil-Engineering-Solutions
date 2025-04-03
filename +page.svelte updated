@@ -1,0 +1,2547 @@
+<script>
+  import { slide, fade } from 'svelte/transition';
+  import { quintOut } from 'svelte/easing';
+  
+  // Use Svelte reactive declarations instead of React useState
+  let currentDate = new Date();
+  let day = currentDate.getDate();
+  let modulesExpanded = false;
+  let subjectsExpanded = false;
+  let selectedModule = null;
+  let selectedSubject = null;
+  let activeTab = 'introduction';
+  let activeSubjectView = 'module'; // 'module', 'problems', or 'calculator'
+  
+  // Course Aid Content Data
+  const courseAidContent = {
+    Geotech: {
+      module: {
+        title: "Geotechnical Engineering",
+        description: "Geotechnical engineering is a branch of civil engineering concerned with the behavior of earth materials. It uses principles of soil mechanics and rock mechanics to investigate subsurface conditions and materials, determine the physical, mechanical, and chemical properties of these materials, and evaluate their stability.",
+        topics: [
+          { title: "Soil Classification", description: "Methods for classifying soils based on grain size, plasticity, and other properties." },
+          { title: "Soil Mechanics", description: "Study of soil behavior under various loading conditions." },
+          { title: "Foundation Design", description: "Principles and methods for designing shallow and deep foundations." },
+          { title: "Slope Stability", description: "Analysis and design of stable slopes in soil and rock." },
+          { title: "Earth Retaining Structures", description: "Design of walls and other structures that hold back soil or rock." }
+        ],
+        resources: [
+          { type: "Book", title: "Principles of Geotechnical Engineering", author: "Braja M. Das" },
+          { type: "Video", title: "Soil Mechanics Fundamentals", link: "#" },
+          { type: "Article", title: "Recent Advances in Foundation Design", link: "#" }
+        ]
+      },
+      problems: [
+        {
+          id: 1,
+          title: "Bearing Capacity Calculation",
+          description: "Calculate the ultimate bearing capacity of a square footing.",
+          difficulty: "Medium",
+          problem: "A 2m × 2m square footing is located at a depth of 1.5m in a cohesive soil. The soil has the following properties: unit weight γ = 18 kN/m³, cohesion c = 30 kPa, and friction angle φ = 25°. Calculate the ultimate bearing capacity using Terzaghi's bearing capacity equation.",
+          hint: "Use the bearing capacity factors: Nc = 20.7, Nq = 10.7, Nγ = 10.9 for φ = 25°."
+        },
+        {
+          id: 2,
+          title: "Slope Stability Analysis",
+          description: "Determine the factor of safety for a soil slope.",
+          difficulty: "Hard",
+          problem: "A 10m high slope has an inclination of 2:1 (H:V) in a soil with unit weight γ = 19 kN/m³, cohesion c = 15 kPa, and friction angle φ = 22°. Using the simplified Bishop method, determine the factor of safety against slope failure.",
+          hint: "Divide the potential failure mass into slices and calculate the forces and moments for each slice."
+        },
+        {
+          id: 3,
+          title: "Settlement Calculation",
+          description: "Calculate the consolidation settlement of a clay layer.",
+          difficulty: "Easy",
+          problem: "A 5m thick clay layer with compression index Cc = 0.25, initial void ratio e0 = 0.9, and preconsolidation pressure pc = 100 kPa is subjected to a stress increase from 80 kPa to 150 kPa. Calculate the consolidation settlement.",
+          hint: "Use the consolidation settlement equation: S = (Cc × H)/(1+e0) × log(σ'f/σ'i)"
+        }
+      ],
+      calculator: {
+        title: "Geotechnical Calculators",
+        tools: [
+          {
+            name: "Bearing Capacity Calculator",
+            description: "Calculate the bearing capacity of shallow foundations using Terzaghi's equation.",
+            inputs: [
+              { label: "Footing Width (m)", type: "number", default: 2 },
+              { label: "Footing Depth (m)", type: "number", default: 1.5 },
+              { label: "Soil Unit Weight (kN/m³)", type: "number", default: 18 },
+              { label: "Cohesion (kPa)", type: "number", default: 30 },
+              { label: "Friction Angle (°)", type: "number", default: 25 }
+            ],
+            formula: "q_ult = c × Nc + q × Nq + 0.5 × γ × B × Nγ"
+          },
+          {
+            name: "Settlement Calculator",
+            description: "Calculate the immediate and consolidation settlement of foundations.",
+            inputs: [
+              { label: "Layer Thickness (m)", type: "number", default: 5 },
+              { label: "Compression Index", type: "number", default: 0.25 },
+              { label: "Initial Void Ratio", type: "number", default: 0.9 },
+              { label: "Initial Stress (kPa)", type: "number", default: 80 },
+              { label: "Final Stress (kPa)", type: "number", default: 150 }
+            ],
+            formula: "S = (Cc × H)/(1+e0) × log(σ'f/σ'i)"
+          }
+        ]
+      }
+    },
+    Transportation: {
+      module: {
+        title: "Transportation Engineering",
+        description: "Transportation engineering is a branch of civil engineering that focuses on the planning, design, operation, and management of transportation systems. It encompasses various modes of transportation including highways, railways, airports, and public transit.",
+        topics: [
+          { title: "Traffic Flow Theory", description: "Study of traffic flow characteristics and relationships between speed, flow, and density." },
+          { title: "Highway Design", description: "Geometric design of highways including horizontal and vertical alignment." },
+          { title: "Pavement Design", description: "Design of flexible and rigid pavements for highways and airports." },
+          { title: "Traffic Safety", description: "Analysis and improvement of transportation safety." },
+          { title: "Transportation Planning", description: "Methods for forecasting travel demand and planning transportation systems." }
+        ],
+        resources: [
+          { type: "Book", title: "Highway Engineering", author: "Paul H. Wright" },
+          { type: "Video", title: "Traffic Flow Fundamentals", link: "#" },
+          { type: "Article", title: "Innovations in Pavement Design", link: "#" }
+        ]
+      },
+      problems: [
+        {
+          id: 1,
+          title: "Highway Curve Design",
+          description: "Design a horizontal curve for a highway.",
+          difficulty: "Medium",
+          problem: "Design a horizontal curve for a two-lane rural highway with a design speed of 80 km/h, maximum superelevation rate of 6%, and a deflection angle of 30 degrees. Determine the minimum radius, curve length, and tangent distance.",
+          hint: "Use the formula R = v²/(127(e + f)) where v is design speed, e is superelevation, and f is side friction factor."
+        },
+        {
+          id: 2,
+          title: "Intersection Capacity Analysis",
+          description: "Analyze the capacity of a signalized intersection.",
+          difficulty: "Hard",
+          problem: "A signalized intersection has a 4-phase signal with a cycle length of 120 seconds. The peak hour volume is 1200 vehicles/hour on the major approach and 800 vehicles/hour on the minor approach. Determine the level of service for each approach.",
+          hint: "Calculate the saturation flow rate, effective green time, capacity, and volume-to-capacity ratio for each approach."
+        },
+        {
+          id: 3,
+          title: "Stopping Sight Distance",
+          description: "Calculate the stopping sight distance for a highway.",
+          difficulty: "Easy",
+          problem: "Calculate the stopping sight distance for a highway with a design speed of 100 km/h, assuming a perception-reaction time of 2.5 seconds and a coefficient of friction of 0.35.",
+          hint: "Use the formula SSD = 0.278 × v × t + v²/(254 × f) where v is speed in km/h, t is perception-reaction time, and f is coefficient of friction."
+        }
+      ],
+      calculator: {
+        title: "Transportation Calculators",
+        tools: [
+          {
+            name: "Highway Curve Calculator",
+            description: "Calculate the parameters of a horizontal curve for highway design.",
+            inputs: [
+              { label: "Design Speed (km/h)", type: "number", default: 80 },
+              { label: "Superelevation Rate (%)", type: "number", default: 6 },
+              { label: "Side Friction Factor", type: "number", default: 0.14 },
+              { label: "Deflection Angle (°)", type: "number", default: 30 }
+            ],
+            formula: "R = v²/(127(e + f))"
+          },
+          {
+            name: "Stopping Sight Distance Calculator",
+            description: "Calculate the stopping sight distance for highway design.",
+            inputs: [
+              { label: "Design Speed (km/h)", type: "number", default: 100 },
+              { label: "Perception-Reaction Time (s)", type: "number", default: 2.5 },
+              { label: "Coefficient of Friction", type: "number", default: 0.35 }
+            ],
+            formula: "SSD = 0.278 × v × t + v²/(254 × f)"
+          }
+        ]
+      }
+    },
+    Hydraulics: {
+      module: {
+        title: "Hydraulic Engineering",
+        description: "Hydraulic engineering is a branch of civil engineering concerned with the flow and conveyance of fluids, particularly water. It focuses on the practical application of fluid mechanics principles to design systems that control, direct, and utilize water resources.",
+        topics: [
+          { title: "Open Channel Flow", description: "Analysis of flow in channels with a free surface, such as rivers and canals." },
+          { title: "Pipe Flow", description: "Analysis of flow in closed conduits under pressure." },
+          { title: "Hydraulic Structures", description: "Design of dams, weirs, spillways, and other water control structures." },
+          { title: "Pumps and Turbines", description: "Selection and design of hydraulic machinery for water systems." },
+          { title: "Hydrology", description: "Study of the distribution and movement of water on Earth." }
+        ],
+        resources: [
+          { type: "Book", title: "Open Channel Hydraulics", author: "Ven Te Chow" },
+          { type: "Video", title: "Fluid Mechanics Fundamentals", link: "#" },
+          { type: "Article", title: "Advances in Computational Hydraulics", link: "#" }
+        ]
+      },
+      problems: [
+        {
+          id: 1,
+          title: "Pipe Flow Analysis",
+          description: "Calculate the flow rate in a pipe.",
+          difficulty: "Medium",
+          problem: "Calculate the flow rate in a 200mm diameter pipe with a length of 500m, given a pressure difference of 50kPa between the ends. Assume water at 20°C with a kinematic viscosity of 1.0×10⁻⁶ m²/s and a pipe roughness of 0.1mm.",
+          hint: "Convert pressure difference to head, estimate friction factor using Moody diagram, and apply Darcy-Weisbach equation."
+        },
+        {
+          id: 2,
+          title: "Open Channel Design",
+          description: "Determine the normal depth in a trapezoidal channel.",
+          difficulty: "Hard",
+          problem: "Determine the normal depth in a trapezoidal channel with a bottom width of 3m, side slopes of 2:1 (H:V), Manning's n of 0.015, longitudinal slope of 0.001, and a design discharge of 20 m³/s.",
+          hint: "Use Manning's equation and solve iteratively for the normal depth."
+        },
+        {
+          id: 3,
+          title: "Hydraulic Jump Analysis",
+          description: "Analyze a hydraulic jump in a rectangular channel.",
+          difficulty: "Medium",
+          problem: "Water flows in a rectangular channel of width 5m at a depth of 0.5m and velocity of 8 m/s. Calculate the sequent depth after a hydraulic jump and the energy loss.",
+          hint: "Use the momentum equation to find the sequent depth and calculate energy before and after the jump."
+        }
+      ],
+      calculator: {
+        title: "Hydraulic Calculators",
+        tools: [
+          {
+            name: "Pipe Flow Calculator",
+            description: "Calculate flow rate, velocity, and head loss in pipes.",
+            inputs: [
+              { label: "Pipe Diameter (mm)", type: "number", default: 200 },
+              { label: "Pipe Length (m)", type: "number", default: 500 },
+              { label: "Pressure Difference (kPa)", type: "number", default: 50 },
+              { label: "Pipe Roughness (mm)", type: "number", default: 0.1 }
+            ],
+            formula: "v = √(2gh×D/(f×L))"
+          },
+          {
+            name: "Open Channel Calculator",
+            description: "Calculate flow parameters in open channels.",
+            inputs: [
+              { label: "Channel Width (m)", type: "number", default: 3 },
+              { label: "Side Slope (H:V)", type: "number", default: 2 },
+              { label: "Manning's n", type: "number", default: 0.015 },
+              { label: "Channel Slope", type: "number", default: 0.001 },
+              { label: "Discharge (m³/s)", type: "number", default: 20 }
+            ],
+            formula: "Q = (1/n)AR^(2/3)S^(1/2)"
+          }
+        ]
+      }
+    },
+    Structures: {
+      module: {
+        title: "Structural Engineering",
+        description: "Structural engineering is a branch of civil engineering that deals with the analysis and design of structures that support or resist loads. It focuses on ensuring that buildings, bridges, and other structures are safe, stable, and can withstand the forces they are subjected to.",
+        topics: [
+          { title: "Structural Analysis", description: "Methods for determining internal forces, stresses, and deformations in structures." },
+          { title: "Reinforced Concrete Design", description: "Design of concrete structures reinforced with steel bars." },
+          { title: "Steel Design", description: "Design of structures using structural steel members." },
+          { title: "Timber Design", description: "Design of structures using wood as the primary material." },
+          { title: "Earthquake Engineering", description: "Design of structures to resist seismic forces." }
+        ],
+        resources: [
+          { type: "Book", title: "Structural Analysis", author: "R.C. Hibbeler" },
+          { type: "Video", title: "Fundamentals of Structural Design", link: "#" },
+          { type: "Article", title: "Innovations in Structural Materials", link: "#" }
+        ]
+      },
+      problems: [
+        {
+          id: 1,
+          title: "Beam Analysis",
+          description: "Analyze a simply supported beam.",
+          difficulty: "Easy",
+          problem: "A simply supported beam of length 6m carries a uniformly distributed load of 5 kN/m over its entire length and a concentrated load of 10 kN at 2m from the left support. Determine the reactions at the supports and the maximum bending moment.",
+          hint: "Use equilibrium equations to find reactions and calculate the bending moment diagram."
+        },
+        {
+          id: 2,
+          title: "Column Design",
+          description: "Design a reinforced concrete column.",
+          difficulty: "Hard",
+          problem: "Design a reinforced concrete column to support an axial load of 2000 kN and a moment of 150 kN·m. The column is 4m tall and is braced against sidesway. Use concrete with f'c = 30 MPa and reinforcing steel with fy = 420 MPa.",
+          hint: "Determine the column size and reinforcement using interaction diagrams or design formulas."
+        },
+        {
+          id: 3,
+          title: "Truss Analysis",
+          description: "Analyze a statically determinate truss.",
+          difficulty: "Medium",
+          problem: "Analyze the forces in all members of a Warren truss with 5 panels, each 3m long. The truss is simply supported and carries a vertical load of 20 kN at each top joint.",
+          hint: "Use the method of joints or method of sections to determine the forces in each member."
+        }
+      ],
+      calculator: {
+        title: "Structural Calculators",
+        tools: [
+          {
+            name: "Beam Calculator",
+            description: "Calculate reactions, shear forces, and bending moments in beams.",
+            inputs: [
+              { label: "Beam Length (m)", type: "number", default: 6 },
+              { label: "Distributed Load (kN/m)", type: "number", default: 5 },
+              { label: "Point Load (kN)", type: "number", default: 10 },
+              { label: "Point Load Position (m)", type: "number", default: 2 }
+            ],
+            formula: "M_max = PL/4 (for centered point load)"
+          },
+          {
+            name: "Column Calculator",
+            description: "Design reinforced concrete columns for axial load and moment.",
+            inputs: [
+              { label: "Axial Load (kN)", type: "number", default: 2000 },
+              { label: "Moment (kN·m)", type: "number", default: 150 },
+              { label: "Column Height (m)", type: "number", default: 4 },
+              { label: "Concrete Strength (MPa)", type: "number", default: 30 },
+              { label: "Steel Yield Strength (MPa)", type: "number", default: 420 }
+            ],
+            formula: "Complex interaction equations"
+          }
+        ]
+      }
+    }
+  };
+  
+  const calculationModules = [
+    { id: 'structural', name: 'Structural Theory', icon: 'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z' },
+    { id: 'hydraulic', name: 'Hydraulics', icon: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z' }, 
+    { id: 'geotechnical', name: 'Geotechnical Engineering', icon: 'M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z' },
+    { id: 'transportation', name: 'Transportation Planning', icon: 'M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12' },
+    { id: 'steel', name: 'Principles of Steel Design', icon: 'M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z' },
+    { id: 'prestressed', name: 'Prestressed Concrete Design', icon: 'M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z' },
+    { id: 'statics', name: 'Statics of Rigid Bodies', icon: 'M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z' },
+    { id: 'dynamics', name: 'Dynamics of Rigid Bodies', icon: 'M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z' }
+  ];
+  
+  const subjects = [
+    { id: 'Geotech', name: 'Geotechnical Engineering', icon: 'M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z' }, 
+    { id: 'Transportation', name: 'Transportation Engineering', icon: 'M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12' },
+    { id: 'Hydraulics', name: 'Hydraulic Engineering', icon: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+    { id: 'Structures', name: 'Structural Engineering', icon: 'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z' }
+  ];
+  
+  // Calculator state
+  let calculatorInputs = {};
+  let calculatorResult = null;
+  
+  function toggleModulesExpand() {
+    modulesExpanded = !modulesExpanded;
+    if (!modulesExpanded) {
+      selectedModule = null;
+    }
+  }
+  
+  function toggleSubjectsExpand() {
+    subjectsExpanded = !subjectsExpanded;
+    if (!subjectsExpanded) {
+      selectedSubject = null;
+    }
+  }
+  
+  function selectModule(moduleId) {
+    selectedModule = moduleId;
+    // Reset active tab when opening a module
+    activeTab = 'introduction';
+    console.log(`Selected module: ${moduleId}`);
+  }
+  
+  function selectSubject(subjectId) {
+    selectedSubject = subjectId;
+    // Reset active tab when opening a subject
+    activeSubjectView = 'module';
+    // Initialize calculator inputs if needed
+    if (courseAidContent[subjectId] && courseAidContent[subjectId].calculator) {
+      const tools = courseAidContent[subjectId].calculator.tools;
+      if (tools && tools.length > 0) {
+        calculatorInputs = {};
+        tools[0].inputs.forEach(input => {
+          calculatorInputs[input.label] = input.default;
+        });
+      }
+    }
+    console.log(`Selected subject: ${subjectId}`);
+  }
+  
+  function setActiveTab(tab) {
+    activeTab = tab;
+  }
+  
+  function setActiveSubjectView(view) {
+    activeSubjectView = view;
+    calculatorResult = null; // Reset calculator result when switching views
+  }
+  
+  function calculateResult(subjectId, toolIndex) {
+    const tool = courseAidContent[subjectId].calculator.tools[toolIndex];
+    
+    // Simple calculation logic based on the tool
+    if (subjectId === 'Geotech') {
+      if (toolIndex === 0) { // Bearing Capacity Calculator
+        const width = parseFloat(calculatorInputs["Footing Width (m)"]);
+        const depth = parseFloat(calculatorInputs["Footing Depth (m)"]);
+        const unitWeight = parseFloat(calculatorInputs["Soil Unit Weight (kN/m³)"]);
+        const cohesion = parseFloat(calculatorInputs["Cohesion (kPa)"]);
+        const frictionAngle = parseFloat(calculatorInputs["Friction Angle (°)"]);
+        
+        // Bearing capacity factors for the given friction angle
+        const Nc = 20.7;
+        const Nq = 10.7;
+        const Ny = 10.9;
+        
+        // Calculate surcharge
+        const q = unitWeight * depth;
+        
+        // Calculate ultimate bearing capacity
+        const qult = cohesion * Nc + q * Nq + 0.5 * unitWeight * width * Ny;
+        
+        calculatorResult = {
+          value: qult.toFixed(2),
+          unit: "kPa",
+          explanation: `The ultimate bearing capacity is ${qult.toFixed(2)} kPa.`
+        };
+      } else if (toolIndex === 1) { // Settlement Calculator
+        const thickness = parseFloat(calculatorInputs["Layer Thickness (m)"]);
+        const compressionIndex = parseFloat(calculatorInputs["Compression Index"]);
+        const voidRatio = parseFloat(calculatorInputs["Initial Void Ratio"]);
+        const initialStress = parseFloat(calculatorInputs["Initial Stress (kPa)"]);
+        const finalStress = parseFloat(calculatorInputs["Final Stress (kPa)"]);
+        
+        // Calculate settlement
+        const settlement = (compressionIndex * thickness) / (1 + voidRatio) * Math.log10(finalStress / initialStress);
+        
+        calculatorResult = {
+          value: settlement.toFixed(3),
+          unit: "m",
+          explanation: `The consolidation settlement is ${settlement.toFixed(3)} m or ${(settlement * 1000).toFixed(1)} mm.`
+        };
+      }
+    } else if (subjectId === 'Transportation') {
+      if (toolIndex === 0) { // Highway Curve Calculator
+        const speed = parseFloat(calculatorInputs["Design Speed (km/h)"]);
+        const superelevation = parseFloat(calculatorInputs["Superelevation Rate (%)"]) / 100;
+        const frictionFactor = parseFloat(calculatorInputs["Side Friction Factor"]);
+        const deflectionAngle = parseFloat(calculatorInputs["Deflection Angle (°)"]);
+        
+        // Calculate minimum radius
+        const radius = Math.pow(speed, 2) / (127 * (superelevation + frictionFactor));
+        
+        // Calculate curve length
+        const curveLength = 2 * Math.PI * radius * (deflectionAngle / 360);
+        
+        // Calculate tangent distance
+        const tangentDistance = radius * Math.tan(deflectionAngle * Math.PI / 360);
+        
+        calculatorResult = {
+          value: radius.toFixed(1),
+          unit: "m",
+          explanation: `Minimum radius: ${radius.toFixed(1)} m\nCurve length: ${curveLength.toFixed(1)} m\nTangent distance: ${tangentDistance.toFixed(1)} m`
+        };
+      } else if (toolIndex === 1) { // Stopping Sight Distance Calculator
+        const speed = parseFloat(calculatorInputs["Design Speed (km/h)"]);
+        const reactionTime = parseFloat(calculatorInputs["Perception-Reaction Time (s)"]);
+        const frictionCoeff = parseFloat(calculatorInputs["Coefficient of Friction"]);
+        
+        // Calculate stopping sight distance
+        const ssd = 0.278 * speed * reactionTime + Math.pow(speed, 2) / (254 * frictionCoeff);
+        
+        calculatorResult = {
+          value: ssd.toFixed(1),
+          unit: "m",
+          explanation: `The stopping sight distance is ${ssd.toFixed(1)} m.`
+        };
+      }
+    } else if (subjectId === 'Hydraulics') {
+      if (toolIndex === 0) { // Pipe Flow Calculator
+        const diameter = parseFloat(calculatorInputs["Pipe Diameter (mm)"]) / 1000; // Convert to m
+        const length = parseFloat(calculatorInputs["Pipe Length (m)"]);
+        const pressureDiff = parseFloat(calculatorInputs["Pressure Difference (kPa)"]);
+        const roughness = parseFloat(calculatorInputs["Pipe Roughness (mm)"]) / 1000; // Convert to m
+        
+        // Convert pressure to head
+        const g = 9.81; // m/s²
+        const rho = 1000; // kg/m³ for water
+        const head = pressureDiff * 1000 / (rho * g);
+        
+        // Estimate friction factor (simplified)
+        const f = 0.02; // Simplified friction factor
+        
+        // Calculate velocity using Darcy-Weisbach
+        const velocity = Math.sqrt(2 * g * head * diameter / (f * length));
+        
+        // Calculate flow rate
+        const area = Math.PI * Math.pow(diameter / 2, 2);
+        const flowRate = velocity * area;
+        
+        calculatorResult = {
+          value: flowRate.toFixed(4),
+          unit: "m³/s",
+          explanation: `Flow rate: ${flowRate.toFixed(4)} m³/s (${(flowRate * 1000).toFixed(1)} L/s)\nVelocity: ${velocity.toFixed(2)} m/s`
+        };
+      } else if (toolIndex === 1) { // Open Channel Calculator
+        // Simplified calculation for demonstration
+        const width = parseFloat(calculatorInputs["Channel Width (m)"]);
+        const sideSlope = parseFloat(calculatorInputs["Side Slope (H:V)"]);
+        const manningsN = parseFloat(calculatorInputs["Manning's n"]);
+        const channelSlope = parseFloat(calculatorInputs["Channel Slope"]);
+        const discharge = parseFloat(calculatorInputs["Discharge (m³/s)"]);
+        
+        // Estimate normal depth (simplified)
+        const normalDepth = Math.pow((manningsN * discharge) / (width * Math.sqrt(channelSlope)), 0.6);
+        
+        calculatorResult = {
+          value: normalDepth.toFixed(2),
+          unit: "m",
+          explanation: `Estimated normal depth: ${normalDepth.toFixed(2)} m`
+        };
+      }
+    } else if (subjectId === 'Structures') {
+      if (toolIndex === 0) { // Beam Calculator
+        const length = parseFloat(calculatorInputs["Beam Length (m)"]);
+        const distributedLoad = parseFloat(calculatorInputs["Distributed Load (kN/m)"]);
+        const pointLoad = parseFloat(calculatorInputs["Point Load (kN)"]);
+        const pointLoadPos = parseFloat(calculatorInputs["Point Load Position (m)"]);
+        
+        // Calculate reactions
+        const totalDistLoad = distributedLoad * length;
+        const rb = (totalDistLoad * length / 2 + pointLoad * pointLoadPos) / length;
+        const ra = totalDistLoad + pointLoad - rb;
+        
+        // Calculate maximum moment (simplified)
+        const maxMoment = Math.max(
+          ra * pointLoadPos - distributedLoad * pointLoadPos * pointLoadPos / 2,
+          pointLoad * (length - pointLoadPos) * pointLoadPos / length + distributedLoad * length * length / 8
+        );
+        
+        calculatorResult = {
+          value: maxMoment.toFixed(2),
+          unit: "kN·m",
+          explanation: `Reaction at A: ${ra.toFixed(2)} kN\nReaction at B: ${rb.toFixed(2)} kN\nMaximum bending moment: ${maxMoment.toFixed(2)} kN·m`
+        };
+      } else if (toolIndex === 1) { // Column Calculator
+        // Simplified calculation for demonstration
+        const axialLoad = parseFloat(calculatorInputs["Axial Load (kN)"]);
+        const moment = parseFloat(calculatorInputs["Moment (kN·m)"]);
+        const height = parseFloat(calculatorInputs["Column Height (m)"]);
+        const concreteStrength = parseFloat(calculatorInputs["Concrete Strength (MPa)"]);
+        
+        // Simplified column size estimation
+        const estimatedSize = Math.sqrt(axialLoad / (0.3 * concreteStrength * 1000)) * 1000;
+        const reinforcementRatio = 0.01 + moment / (axialLoad * estimatedSize / 1000) * 0.005;
+        
+        calculatorResult = {
+          value: estimatedSize.toFixed(0),
+          unit: "mm",
+          explanation: `Estimated column size: ${estimatedSize.toFixed(0)} mm × ${estimatedSize.toFixed(0)} mm\nEstimated reinforcement ratio: ${(reinforcementRatio * 100).toFixed(2)}%`
+        };
+      }
+    }
+  }
+  </script>
+  
+  <svelte:head>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap">
+  </svelte:head>
+  
+  <div class="min-h-screen bg-[#f8f9fa] p-2 sm:p-4 md:p-8 lg:p-12 flex items-center justify-center">
+  <div class="w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+    <!-- Left Panel -->
+    <div class="bg-[#002b5c] text-white p-4 sm:p-6 md:p-8 lg:p-12 rounded-lg flex flex-col shadow-xl">
+      <div class="mb-4 md:mb-6 flex items-center justify-center">
+        <div class="w-16 h-16 md:w-24 md:h-24 bg-white rounded-full flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-300">
+          <img src="/placeholder.svg?height=80&width=80" alt="Logo" class="w-12 h-12 md:w-20 md:h-20 rounded-full object-cover border-4 border-[#f08c00]" />
+        </div>
+      </div>
+  
+      <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight text-center">CIVIL ENGINEERING SOLUTIONS</h1>
+  
+      <p class="text-base sm:text-lg md:text-xl leading-relaxed text-center mt-4">
+        This design tool aid aims to assist both students and instructors during academic interactions in synchronous or asynchronous classes.
+      </p>
+    </div>
+  
+    <!-- Right Panel -->
+    <div class="col-span-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- Subject Card -->
+      <div class="relative bg-[#8c9eff] text-white rounded-lg p-4 sm:p-6 md:p-8 flex flex-col justify-center shadow-lg overflow-hidden group">
+        <div class="cursor-pointer" on:click={toggleModulesExpand}>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold group-hover:text-white transition-colors">Course</h2>
+          <p class="text-base sm:text-lg opacity-90 group-hover:opacity-100 transition-opacity">Current Course Available</p>
+  
+          <div class="mt-4 bg-white rounded-md p-3 sm:p-4 text-gray-800 text-center transform group-hover:scale-105 transition-transform">
+            <span class="text-lg sm:text-xl font-medium">8 Course available</span>
+          </div>
+        </div>
+  
+        {#if modulesExpanded}
+          <div transition:slide={{ duration: 300, easing: quintOut }} class="mt-4 p-3 sm:p-4 bg-white text-gray-800 rounded-lg">
+            <ul class="space-y-2">
+              {#each calculationModules as module}
+                <li 
+                  class="flex items-center p-2 rounded-md hover:bg-blue-50 cursor-pointer transition-colors {selectedModule === module.id ? 'bg-blue-100 border-l-4 border-blue-500' : ''}"
+                  on:click={() => selectModule(module.id)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 text-blue-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d={module.icon} />
+                  </svg>
+                  <span class="font-medium">{module.name}</span>
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+      </div>
+  
+      <!-- Course aid box Card -->
+      <div class="relative bg-[#264653] text-white rounded-lg p-4 sm:p-6 md:p-8 flex flex-col justify-center shadow-lg overflow-hidden group">
+        <div class="cursor-pointer" on:click={toggleSubjectsExpand}>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold group-hover:text-white transition-colors">Course Aid</h2>
+          <p class="text-base sm:text-lg opacity-90 group-hover:opacity-100 transition-opacity">Browse the engineering Course Aid</p>
+  
+          <div class="mt-4 bg-white rounded-md p-3 sm:p-4 text-gray-800 text-center transform group-hover:scale-105 transition-transform">
+            <span class="text-lg sm:text-xl font-medium">{subjects.length} Course Aid</span>
+          </div>
+        </div>
+  
+        {#if subjectsExpanded}
+          <div transition:slide={{ duration: 300, easing: quintOut }} class="mt-4 p-3 sm:p-4 bg-white text-gray-800 rounded-lg">
+            <ul class="space-y-2">
+              {#each subjects as subject}
+                <li 
+                  class="flex items-center p-2 rounded-md hover:bg-teal-50 cursor-pointer transition-colors {selectedSubject === subject.id ? 'bg-teal-100 border-l-4 border-teal-500' : ''}"
+                  on:click={() => selectSubject(subject.id)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 text-teal-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d={subject.icon} />
+                  </svg>
+                  <span class="font-medium">{subject.name}</span>
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+      </div>
+  
+      <!-- Calendar Card -->
+      <div class="bg-[#e76f51] text-white rounded-lg p-4 sm:p-6 md:p-8 flex flex-col items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-300">
+        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-4 md:mb-6">Calendar</h2>
+        <div class="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-white rounded-md flex items-center justify-center shadow-inner">
+          <span class="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-800">{day}</span>
+        </div>
+      </div>
+  
+      <!-- Settings Card -->
+      <div class="bg-[#b0bec5] text-white rounded-lg p-4 sm:p-6 md:p-8 flex flex-col items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-300">
+        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-4 md:mb-6">Settings</h2>
+        <div class="w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 bg-gray-800 rounded-full flex items-center justify-center shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-white w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12">
+            <path fill-rule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clip-rule="evenodd" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  
+  <!-- Module Card -->
+  {#if selectedModule}
+  <div transition:fade={{ duration: 200 }} class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+    <div class="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl" transition:slide={{ duration: 300, easing: quintOut }}>
+      <div class="sticky top-0 bg-white z-10 flex justify-between items-center p-3 sm:p-4 md:p-6 border-b">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800">
+          {calculationModules.find(m => m.id === selectedModule)?.name}
+        </h2>
+        <button 
+          class="p-2 rounded-full hover:bg-gray-100" 
+          on:click={() => selectedModule = null}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <div class="p-3 sm:p-4 md:p-6">
+        <!-- Tabs -->
+        <div class="mb-6 border-b">
+          <div class="flex flex-wrap -mb-px">
+            <button 
+              class="inline-block p-2 sm:p-4 border-b-2 {activeTab === 'introduction' ? 'border-blue-500 text-blue-600' : 'border-transparent hover:border-gray-300 text-gray-500 hover:text-gray-600'}"
+              on:click={() => setActiveTab('introduction')}
+            >
+              Introduction
+            </button>
+            <button 
+              class="inline-block p-2 sm:p-4 border-b-2 {activeTab === 'principles' ? 'border-blue-500 text-blue-600' : 'border-transparent hover:border-gray-300 text-gray-500 hover:text-gray-600'}"
+              on:click={() => setActiveTab('principles')}
+            >
+              Basic Principles
+            </button>
+            <button 
+              class="inline-block p-2 sm:p-4 border-b-2 {activeTab === 'methods' ? 'border-blue-500 text-blue-600' : 'border-transparent hover:border-gray-300 text-gray-500 hover:text-gray-600'}"
+              on:click={() => setActiveTab('methods')}
+            >
+              Analysis Methods
+            </button>
+            <button 
+              class="inline-block p-2 sm:p-4 border-b-2 {activeTab === 'examples' ? 'border-blue-500 text-blue-600' : 'border-transparent hover:border-gray-300 text-gray-500 hover:text-gray-600'}"
+              on:click={() => setActiveTab('examples')}
+            >
+              Examples
+            </button>
+          </div>
+        </div>
+        
+        <!-- Tab Content for Structural Theory -->
+        {#if selectedModule === 'structural'}
+          {#if activeTab === 'introduction'}
+            <div class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="text-lg sm:text-xl font-semibold mb-3">What is Structural Theory?</h3>
+                  <p class="text-gray-700 mb-4">
+                    Structural theory, in its broadest sense, examines the organization and relationships within a system, whether it's chemistry, psychology, sociology, or engineering, focusing on how interdependent parts contribute to the whole. 
+                  </p>
+                  <p class="text-gray-700">
+                    The results of the analysis are used to verify a structure's fitness for use, often precluding physical tests. 
+                    Structural analysis is thus a key part of the engineering design of structures.
+                  </p>
+                </div>
+                <div class="flex justify-center items-center">
+                  <!-- <img src="/placeholder.svg?height=250&width=350" alt="Structural analysis diagram" class="rounded-lg shadow-md max-w-full h-auto" /> -->
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-2">Learning Objectives</h4>
+                <p class="text-gray-600 mb-3">After completing this Subject, students will be able to:</p>
+                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Identify and explain the key principles of a specific theory or concept.</li>
+                  <li>Apply learned rules and concepts to solve problems.</li>
+                  <li>Create new rules or schemas to classify new information.</li>
+                  <li>Explain how different concepts relate to each other within a broader framework.</li>
+                  <li>Transfer their knowledge and skills to new situations.</li>
+                  <li>Analyze and synthesize information to develop a deeper understanding of a topic.</li>
+                </ul>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'principles'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Basic Principles of Structural Theory</h3>
+  
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Equilibrium</h4>
+                  <p class="text-gray-700">
+                    A structure is in equilibrium when the sum of all forces and moments acting on it equals zero.
+                    This principle is expressed through the equations:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>∑Fx = 0, ∑Fy = 0, ∑M = 0</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    These equations form the basis for determining reactions at supports and internal forces in
+                    members.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Compatibility</h4>
+                  <p class="text-gray-700">
+                    Compatibility ensures that the structure deforms in a consistent manner. Connected parts must
+                    maintain their connections during deformation, and supports must satisfy their boundary
+                    conditions.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    This principle is crucial for analyzing indeterminate structures where equilibrium equations alone
+                    are insufficient.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Constitutive Relationships</h4>
+                  <p class="text-gray-700">
+                    These relationships describe how materials respond to applied loads. The most common is Hooke's
+                    Law for linear elastic materials:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>σ = E × ε</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">Where σ is stress, E is Young's modulus, and ε is strain.</p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Superposition</h4>
+                  <p class="text-gray-700">
+                    For linear systems, the principle of superposition states that the response of a structure to
+                    multiple loads is equal to the sum of the responses to each load applied separately.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    This principle greatly simplifies the analysis of complex loading conditions.
+                  </p>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'methods'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Structural Analysis Methods</h3>
+  
+              <div class="space-y-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Method of Joints</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        The method of joints analyzes truss structures by isolating each joint and applying the
+                        equations of equilibrium. Since truss members are connected by pins, they can only transmit
+                        axial forces (tension or compression).
+                      </p>
+                      <p class="mt-2 text-gray-700">Steps:</p>
+                      <ol class="list-decimal pl-5 mt-1">
+                        <li>Calculate external reactions</li>
+                        <li>Start at a joint with at most two unknown forces</li>
+                        <li>Apply equilibrium equations (∑Fx = 0, ∑Fy = 0)</li>
+                        <li>Solve for unknown member forces</li>
+                        <li>Move to the next joint and repeat</li>
+                      </ol>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Method of joints diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Method of Sections</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        The method of sections involves cutting a truss into two parts with a section line and
+                        analyzing the equilibrium of one part. This method is particularly useful for finding forces
+                        in specific members without solving for all members.
+                      </p>
+                      <p class="mt-2 text-gray-700">Steps:</p>
+                      <ol class="list-decimal pl-5 mt-1">
+                        <li>Calculate external reactions</li>
+                        <li>Cut the truss with a section passing through the members of interest</li>
+                        <li>Apply equilibrium equations to one part of the truss</li>
+                        <li>Solve for unknown member forces</li>
+                      </ol>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Method of sections diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Moment Distribution Method</h4>
+                  <p class="text-gray-700">
+                    The moment distribution method is an iterative approach for analyzing indeterminate structures.
+                    Developed by Hardy Cross, it's particularly useful for continuous beams and frames.
+                  </p>
+                  <p class="mt-2 text-gray-700">The method involves:</p>
+                  <ul class="list-disc pl-5 mt-1">
+                    <li>Calculating fixed-end moments</li>
+                    <li>Distributing unbalanced moments at joints</li>
+                    <li>Carrying over moments to adjacent members</li>
+                    <li>Iterating until convergence</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'examples'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Practical Examples</h3>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Simple Beam Analysis</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Consider a simply supported beam of length L = 6m with a concentrated load P = 10kN at the
+                      center.
+                    </p>
+                    <p class="font-medium">Step 1: Calculate reactions</p>
+                    <p class="text-gray-700 mb-2">By symmetry, RA = RB = P/2 = 5kN</p>
+  
+                    <p class="font-medium">Step 2: Calculate internal forces</p>
+                    <p class="text-gray-700 mb-2">
+                      Maximum shear force: Vmax = 5kN
+                      <br />
+                      Maximum bending moment: Mmax = PL/4 = 10 × 6/4 = 15kN·m
+                    </p>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Simple beam diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Truss Analysis Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      For the simple truss shown, determine the forces in all members using the method of joints.
+                    </p>
+                    <p class="font-medium">Results:</p>
+                    <ul class="list-disc pl-5 mt-1">
+                      <li>Member AB: 8.66kN (Compression)</li>
+                      <li>Member AC: 5kN (Tension)</li>
+                      <li>Member BC: 5kN (Compression)</li>
+                    </ul>
+  
+                    <div class="mt-4">
+                      <p class="font-medium">Verification:</p>
+                      <p class="text-gray-700">
+                        We can verify these results by checking equilibrium at each joint.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Truss example diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        {/if}
+  
+        <!-- Tab Content for Hydraulic Engineering -->
+        {#if selectedModule === 'hydraulic'}
+          {#if activeTab === 'introduction'}
+            <div class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="text-lg sm:text-xl font-semibold mb-3">What is Hydraulic Engineering?</h3>
+                  <p class="text-gray-700 mb-4">
+                    Structural theory, in its broadest sense, examines the organization and relationships within a system, whether it's chemistry, psychology, sociology, or engineering, focusing on how interdependent parts contribute to the whole. 
+                  </p>
+                  <p class="text-gray-700">
+                    This field encompasses the design and analysis of hydraulic structures such as dams, canals, pipelines, and water treatment facilities. It plays a crucial role in water resource management, flood control, irrigation, and hydropower generation.
+                  </p>
+                </div>
+                <div class="flex justify-center items-center">
+                 <!-- <img src="/placeholder.svg?height=250&width=350" alt="Hydraulic engineering diagram" class="rounded-lg shadow-md max-w-full h-auto" /> -->
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-2">Learning Objectives</h4>
+                <p class="text-gray-600 mb-3">After completing this Subject, students will be able to:</p>
+                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Apply fundamental principles of fluid mechanics to hydraulic engineering problems</li>
+                  <li>Analyze flow in open channels and closed conduits</li>
+                  <li>Design basic hydraulic structures and systems</li>
+                  <li>Understand the behavior of water in various hydraulic environments</li>
+                  <li>Apply hydraulic modeling techniques to predict system performance</li>
+                  <li>Evaluate hydraulic systems for efficiency and sustainability</li>
+                </ul>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'principles'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Basic Principles of Hydraulics</h3>
+  
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Conservation of Mass</h4>
+                  <p class="text-gray-700">
+                    The principle of conservation of mass states that mass cannot be created or destroyed in a hydraulic system. For incompressible fluids like water, this translates to the continuity equation:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>Q = A₁v₁ = A₂v₂</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    Where Q is the flow rate, A is the cross-sectional area, and v is the velocity at different points in the system.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Bernoulli's Principle</h4>
+                  <p class="text-gray-700">
+                    Bernoulli's principle relates pressure, velocity, and elevation in a flowing fluid. For an ideal fluid with no viscosity, the total energy at any point in a flow remains constant:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>p/ρg + v²/2g + z = constant</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    Where p is pressure, ρ is density, g is gravitational acceleration, v is velocity, and z is elevation.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Energy Loss</h4>
+                  <p class="text-gray-700">
+                    In real fluids, energy is lost due to friction and turbulence. These losses are accounted for using the Darcy-Weisbach equation for pipe flow:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>hₗ = f(L/D)(v²/2g)</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    Where hₗ is head loss, f is the friction factor, L is pipe length, D is pipe diameter, v is velocity, and g is gravitational acceleration.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Manning's Equation</h4>
+                  <p class="text-gray-700">
+                    Manning's equation is used to calculate the flow in open channels:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>v = (1/n)R^(2/3)S^(1/2)</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    Where v is velocity, n is Manning's roughness coefficient, R is hydraulic radius, and S is the slope of the energy grade line.
+                  </p>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'methods'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Hydraulic Analysis Methods</h3>
+  
+              <div class="space-y-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Pipe Flow Analysis</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        Pipe flow analysis involves determining flow rates, pressures, and energy losses in closed conduit systems. The analysis typically follows these steps:
+                      </p>
+                      <ol class="list-decimal pl-5 mt-2">
+                        <li>Define the pipe network geometry and properties</li>
+                        <li>Establish boundary conditions (pressures, flow rates)</li>
+                        <li>Apply conservation of mass at junctions</li>
+                        <li>Apply energy equations along pipe segments</li>
+                        <li>Account for minor losses at fittings and valves</li>
+                        <li>Solve the resulting system of equations</li>
+                      </ol>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Pipe flow diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Open Channel Flow Analysis</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        Open channel flow analysis examines flow in channels with a free surface, such as rivers, canals, and partially filled pipes. Key concepts include:
+                      </p>
+                      <ul class="list-disc pl-5 mt-2">
+                        <li>Classification of flow (subcritical, critical, supercritical)</li>
+                        <li>Uniform vs. varied flow</li>
+                        <li>Specific energy and critical depth</li>
+                        <li>Hydraulic jumps and energy dissipation</li>
+                        <li>Gradually varied flow profiles</li>
+                        <li>Channel transitions and controls</li>
+                      </ul>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Open channel flow diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Hydraulic Modeling</h4>
+                  <p class="text-gray-700">
+                    Hydraulic modeling uses computational methods to simulate flow behavior in complex systems. Modern approaches include:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2">
+                    <li>One-dimensional models for river and pipe networks</li>
+                    <li>Two-dimensional models for floodplain analysis</li>
+                    <li>Computational Fluid Dynamics (CFD) for detailed 3D flow analysis</li>
+                    <li>Physical scale models for complex hydraulic structures</li>
+                    <li>Hybrid modeling approaches combining physical and numerical methods</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'examples'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Practical Examples</h3>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Pipe Flow Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Calculate the flow rate in a 200mm diameter pipe with a length of 500m, given a pressure difference of 50kPa between the ends. Assume water at 20°C with a kinematic viscosity of 1.0×10⁻⁶ m²/s and a pipe roughness of 0.1mm.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Convert pressure difference to head: h = 50kPa/(9.81×1000) = 5.1m</li>
+                      <li>Estimate friction factor using Moody diagram or Colebrook equation: f ≈ 0.018</li>
+                      <li>Apply Darcy-Weisbach: v = √(2gh×D/(f×L)) = 1.67 m/s</li>
+                      <li>Calculate flow rate: Q = A×v = π×0.1²×1.67 = 0.052 m³/s = 52 L/s</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Pipe flow example" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Open Channel Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Determine the normal depth in a trapezoidal channel with a bottom width of 3m, side slopes of 2:1 (H:V), Manning's n of 0.015, longitudinal slope of 0.001, and a design discharge of 20 m³/s.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Use Manning's equation: Q = (1/n)AR^(2/3)S^(1/2)</li>
+                      <li>For a trapezoidal channel: A = (b + zy)y and P = b + 2y√(1+z²)</li>
+                      <li>Substitute and solve iteratively for normal depth y</li>
+                      <li>Result: Normal depth y = 1.82m</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Open channel example" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        {/if}
+  
+        <!-- Tab Content for Geotechnical Engineering -->
+        {#if selectedModule === 'geotechnical'}
+          {#if activeTab === 'introduction'}
+            <div class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="text-lg sm:text-xl font-semibold mb-3">What is Geotechnical Engineering?</h3>
+                  <p class="text-gray-700 mb-4">
+                    Geotechnical engineering is a branch of civil engineering concerned with the behavior of earth materials. It uses principles of soil mechanics and rock mechanics to investigate subsurface conditions and materials, determine the physical, mechanical, and chemical properties of these materials, and evaluate their stability.
+                  </p>
+                  <p class="text-gray-700">
+                    Structural theory, in its broadest sense, examines the organization and relationships within a system, whether it's chemistry, psychology, sociology, or engineering, focusing on how interdependent parts contribute to the whole. 
+                  </p>
+                </div>
+                <div class="flex justify-center items-center">
+                  <img src="/placeholder.svg?height=250&width=350" alt="Geotechnical engineering diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-2">Learning Objectives</h4>
+                <p class="text-gray-600 mb-3">After completing this Subject, students will be able to:</p>
+                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Classify soils according to engineering classification systems</li>
+                  <li>Determine physical and mechanical properties of soils through laboratory testing</li>
+                  <li>Analyze soil stress conditions and settlement behavior</li>
+                  <li>Evaluate soil strength and stability for engineering applications</li>
+                  <li>Design shallow and deep foundations for various structures</li>
+                  <li>Analyze earth retaining structures and slope stability</li>
+                </ul>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'principles'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Basic Principles of Geotechnical Engineering</h3>
+  
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Effective Stress Principle</h4>
+                  <p class="text-gray-700">
+                    The effective stress principle is fundamental to understanding soil behavior. It states that the behavior of soil is controlled by the effective stress, which is the difference between total stress and pore water pressure:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>σ' = σ - u</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    Where σ' is effective stress, σ is total stress, and u is pore water pressure.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Shear Strength</h4>
+                  <p class="text-gray-700">
+                    Soil shear strength is typically described by the Mohr-Coulomb failure criterion:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>τ = c' + σ' tan φ'</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    Where τ is shear strength, c' is effective cohesion, σ' is effective normal stress, and φ' is the effective angle of internal friction.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Consolidation</h4>
+                  <p class="text-gray-700">
+                    Consolidation is the process by which soils decrease in volume when subjected to loading. The rate of consolidation is governed by Terzaghi's one-dimensional consolidation theory:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>∂u/∂t = c_v ∂²u/∂z²</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    Where u is excess pore water pressure, t is time, c_v is the coefficient of consolidation, and z is depth.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Lateral Earth Pressure</h4>
+                  <p class="text-gray-700">
+                    Lateral earth pressure is the pressure exerted by soil on retaining structures. The three classic states are:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>At-rest pressure (K₀): When the wall does not move</li>
+                    <li>Active pressure (K_a): When the wall moves away from the soil</li>
+                    <li>Passive pressure (K_p): When the wall moves toward the soil</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'methods'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Geotechnical Analysis Methods</h3>
+  
+              <div class="space-y-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Site Investigation</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        Site investigation is the process of determining the subsurface conditions at a site. Methods include:
+                      </p>
+                      <ul class="list-disc pl-5 mt-2">
+                        <li>Desk study of existing information</li>
+                        <li>Site reconnaissance</li>
+                        <li>Exploratory boreholes and trial pits</li>
+                        <li>In-situ testing (SPT, CPT, vane shear, etc.)</li>
+                        <li>Geophysical methods (seismic, electrical, etc.)</li>
+                        <li>Laboratory testing of soil samples</li>
+                      </ul>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Site investigation methods" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Foundation Analysis</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        Foundation analysis involves evaluating the capacity of soil to support structural loads. Key aspects include:
+                      </p>
+                      <ul class="list-disc pl-5 mt-2">
+                        <li>Bearing capacity analysis</li>
+                        <li>Settlement analysis (immediate and consolidation)</li>
+                        <li>Shallow foundation design (spread footings, mats)</li>
+                        <li>Deep foundation design (piles, drilled shafts)</li>
+                        <li>Foundation on problematic soils (expansive, collapsible)</li>
+                      </ul>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Foundation analysis" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Slope Stability Analysis</h4>
+                  <p class="text-gray-700">
+                    Slope stability analysis evaluates the potential for soil or rock slopes to fail under various conditions. Methods include:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2">
+                    <li>Limit equilibrium methods (method of slices)</li>
+                    <li>Finite element analysis</li>
+                    <li>Probabilistic approaches</li>
+                    <li>Analysis of different failure modes (circular, non-circular, wedge)</li>
+                    <li>Consideration of seepage forces and seismic effects</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'examples'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Practical Examples</h3>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Bearing Capacity Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Calculate the ultimate bearing capacity of a 2m × 2m square footing at a depth of 1.5m in a cohesive soil with the following properties: unit weight γ = 18 kN/m³, cohesion c = 30 kPa, and friction angle φ = 25°.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Using Terzaghi's bearing capacity equation: q_ult = c·N_c + q·N_q + 0.5·γ·B·N_γ</li>
+                      <li>For φ = 25°: N_c = 20.7, N_q = 10.7, N_γ = 10.9</li>
+                      <li>Surcharge q = γ·D = 18 × 1.5 = 27 kPa</li>
+                      <li>q_ult = 30 × 20.7 + 27 × 10.7 + 0.5 × 18 × 2 × 10.9 = 621 + 289 + 196 = 1106 kPa</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Bearing capacity example" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Slope Stability Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Analyze the stability of a 10m high slope with an inclination of 2:1 (H:V) in a soil with unit weight γ = 19 kN/m³, cohesion c = 15 kPa, and friction angle φ = 22°.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Using the simplified Bishop method for circular slip surfaces</li>
+                      <li>Dividing the potential failure mass into slices</li>
+                      <li>Calculating forces and moments for each slice</li>
+                      <li>Computing the factor of safety as the ratio of resisting to driving moments</li>
+                      <li>Result: Factor of Safety = 1.35 (stable if > 1.0)</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Slope stability example" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        {/if}
+  
+        <!-- Tab Content for Transportation Planning -->
+        {#if selectedModule === 'transportation'}
+          {#if activeTab === 'introduction'}
+            <div class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="text-lg sm:text-xl font-semibold mb-3">What is Transportation Planning?</h3>
+                  <p class="text-gray-700 mb-4">
+                    Transportation planning is a branch of civil engineering that focuses on efficiently moving people and goods. It involves the analysis, design, and management of transportation systems to ensure safe, efficient, and sustainable mobility.
+                  </p>
+                  <p class="text-gray-700">
+                    This field encompasses various modes of transportation including highways, railways, airports, and public transit.It integrates technical knowledge with social,economic,and environmental considerations to develop comprehensive transportation solutions.
+                  </p>
+                </div>
+                <div class="flex justify-center items-center">
+                  <!-- <img src="/placeholder.svg?height=250&width=350" alt="Transportation planning diagram" class="rounded-lg shadow-md max-w-full h-auto" /> -->
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-2">Learning Objectives</h4>
+                <p class="text-gray-600 mb-3">After completing this Subject, students will be able to:</p>
+                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Understand the principles of transportation planning and policy</li>
+                  <li>Analyze travel demand and traffic patterns</li>
+                  <li>Design transportation infrastructure for various modes</li>
+                  <li>Evaluate transportation systems for safety and efficiency</li>
+                  <li>Apply traffic engineering principles to solve mobility challenges</li>
+                  <li>Integrate sustainability considerations into transportation planning</li>
+                </ul>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'principles'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Basic Principles of Transportation Planning</h3>
+  
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Travel Demand</h4>
+                  <p class="text-gray-700">
+                    Travel demand refers to the number of trips people make and the characteristics of these trips. It is influenced by:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>Land use patterns and density</li>
+                    <li>Socioeconomic factors</li>
+                    <li>Transportation system characteristics</li>
+                    <li>Travel costs and time</li>
+                    <li>Personal preferences and habits</li>
+                  </ul>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Traffic Flow Theory</h4>
+                  <p class="text-gray-700">
+                    Traffic flow theory describes the relationships between the fundamental parameters of traffic:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>q = k × v</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    Where q is flow rate (vehicles/hour), k is density (vehicles/km), and v is speed (km/hour).
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Level of Service</h4>
+                  <p class="text-gray-700">
+                    Level of Service (LOS) is a qualitative measure used to describe the operating conditions of a transportation facility. It ranges from LOS A (free flow) to LOS F (breakdown flow) and considers factors such as:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>Speed and travel time</li>
+                    <li>Freedom to maneuver</li>
+                    <li>Traffic interruptions</li>
+                    <li>Comfort and convenience</li>
+                  </ul>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Geometric Design</h4>
+                  <p class="text-gray-700">
+                    Geometric design involves the dimensions and layout of visible features of a transportation facility. Key elements include:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>Horizontal and vertical alignment</li>
+                    <li>Cross-section elements (lanes, shoulders, medians)</li>
+                    <li>Sight distance considerations</li>
+                    <li>Intersection design</li>
+                    <li>Design for different user groups (vehicles, pedestrians, cyclists)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'methods'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Transportation Analysis Methods</h3>
+  
+              <div class="space-y-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Four-Step Travel Demand Modeling</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        The four-step model is a traditional approach to forecasting travel demand:
+                      </p>
+                      <ol class="list-decimal pl-5 mt-2">
+                        <li><strong>Trip Generation:</strong> Estimating the number of trips produced by and attracted to each zone</li>
+                        <li><strong>Trip Distribution:</strong> Connecting trip origins to destinations</li>
+                        <li><strong>Mode Choice:</strong> Determining the transportation mode for each trip</li>
+                        <li><strong>Route Assignment:</strong> Allocating trips to specific routes in the network</li>
+                      </ol>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Four-step model diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Traffic Analysis</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        Traffic analysis involves evaluating the performance of transportation facilities:
+                      </p>
+                      <ul class="list-disc pl-5 mt-2">
+                        <li>Capacity analysis for roadway segments and intersections</li>
+                        <li>Delay and queue estimation</li>
+                        <li>Signal timing optimization</li>
+                        <li>Traffic simulation modeling</li>
+                        <li>Safety analysis and crash prediction</li>
+                      </ul>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Traffic analysis diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Benefit-Cost Analysis</h4>
+                  <p class="text-gray-700">
+                    Benefit-cost analysis evaluates transportation projects by comparing the monetary value of benefits to costs:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2">
+                    <li>User benefits (travel time savings, vehicle operating cost reductions)</li>
+                    <li>Safety benefits (crash reduction)</li>
+                    <li>Environmental impacts (emissions, noise)</li>
+                    <li>Construction and maintenance costs</li>
+                    <li>Discounting future benefits and costs to present value</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'examples'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Practical Examples</h3>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Intersection Capacity Analysis</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Analyze the capacity and level of service of a signalized intersection with the following characteristics: 4-phase signal with a cycle length of 120 seconds, peak hour volume of 1200 vehicles/hour on the major approach, and 800 vehicles/hour on the minor approach.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Calculate the saturation flow rate for each approach</li>
+                      <li>Determine the effective green time for each phase</li>
+                      <li>Compute the capacity of each lane group: c = s × (g/C)</li>
+                      <li>Calculate the volume-to-capacity ratio (v/c)</li>
+                      <li>Estimate delay and determine LOS (Level of Service)</li>
+                      <li>Result: Major approach LOS C, Minor approach LOS D</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Intersection analysis example" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Highway Geometric Design Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Design a horizontal curve for a two-lane rural highway with a design speed of 80 km/h, maximum superelevation rate of 6%, and a deflection angle of 30 degrees.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Determine the minimum radius: R = v²/(127(e + f))</li>
+                      <li>For v = 80 km/h, e = 0.06, and f = 0.14: R = 252m</li>
+                      <li>Calculate curve length: L = 2πR(Δ/360) = 2π × 252 × (30/360) = 132m</li>
+                      <li>Determine tangent distance: T = R × tan(Δ/2) = 252 × tan(15°) = 67.5m</li>
+                      <li>Check for stopping sight distance requirements</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Highway design example" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        {/if}
+  
+        <!-- Tab Content for Steel Design -->
+        {#if selectedModule === 'steel'}
+          {#if activeTab === 'introduction'}
+            <div class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="text-lg sm:text-xl font-semibold mb-3">What is Steel Design?</h3>
+                  <p class="text-gray-700 mb-4">
+                    Steeldesign is a specialized field of structural engineering that focuses on designing structures using steel as the primary material.It involves applying engineering principles to create safe,economical,and functional steel structures that can withstand various loads and environmental conditions.
+                  </p>
+                  <p class="text-gray-700">
+                    Steel is widely used in construction due to its high strength-to-weight ratio, ductility, and versatility. Steel design principles are applied in various structures, from skyscrapers and bridges to industrial buildings and residential constructions.
+                  </p>
+                </div>
+                <div class="flex justify-center items-center">
+                  <!-- <img src="/placeholder.svg?height=250&width=350" alt="Steel structure diagram" class="rounded-lg shadow-md max-w-full h-auto" /> -->
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-2">Learning Objectives</h4>
+                <p class="text-gray-600 mb-3">After completing this module, students will be able to:</p>
+                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Understand the mechanical properties of structural steel</li>
+                  <li>Apply design codes and standards (AISC, Eurocode, etc.)</li>
+                  <li>Design steel members for tension, compression, and flexure</li>
+                  <li>Analyze and design connections in steel structures</li>
+                  <li>Evaluate stability considerations in steel design</li>
+                  <li>Design for serviceability and durability requirements</li>
+                </ul>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'principles'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Basic Principles of Steel Design</h3>
+  
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Limit State Design</h4>
+                  <p class="text-gray-700">
+                    Modern steel design is based on limit state principles, which ensure that a structure will not reach undesirable states (ultimate or serviceability) during its intended life.
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>Ultimate Limit States: Related to safety (strength, stability)</li>
+                    <li>Serviceability Limit States: Related to performance under normal use (deflection, vibration)</li>
+                  </ul>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Load and Resistance Factor Design (LRFD)</h4>
+                  <p class="text-gray-700">
+                    LRFD accounts for uncertainties in both loads and material resistance:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>ΦRn ≥ Σγi Qi</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    Where Φ is the resistance factor, Rn is nominal resistance, γi are load factors, and Qi are load effects.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Steel Properties</h4>
+                  <p class="text-gray-700">
+                    Key properties that influence steel design include:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>Yield strength (Fy): Typically 36-50 ksi (250-345 MPa)</li>
+                    <li>Tensile strength (Fu): Typically 58-70 ksi (400-485 MPa)</li>
+                    <li>Modulus of elasticity (E): 29,000 ksi (200 GPa)</li>
+                    <li>Ductility: Ability to deform plastically before failure</li>
+                  </ul>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Section Classification</h4>
+                  <p class="text-gray-700">
+                    Steel sections are classified based on their susceptibility to local buckling:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>Compact sections: Can develop full plastic moment</li>
+                    <li>Non-compact sections: Can reach yield but not full plastic capacity</li>
+                    <li>Slender sections: Local buckling occurs before yielding</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'methods'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Steel Design Methods</h3>
+  
+              <div class="space-y-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Tension Member Design</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        Tension members are designed to resist axial tensile forces. The design considers:
+                      </p>
+                      <ul class="list-disc pl-5 mt-2">
+                        <li>Yielding of the gross section: Pn = Fy × Ag</li>
+                        <li>Fracture of the net section: Pn = Fu × Ae</li>
+                        <li>Block shear rupture at connections</li>
+                        <li>Slenderness limitations for serviceability</li>
+                      </ul>
+                      <p class="mt-2 text-gray-700">
+                        Where Ag is the gross area and Ae is the effective net area.
+                      </p>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Tension member diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Compression Member Design</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        Compression members (columns) must be designed considering buckling phenomena:
+                      </p>
+                      <ul class="list-disc pl-5 mt-2">
+                        <li>Global buckling (Euler buckling)</li>
+                        <li>Local buckling of plate elements</li>
+                        <li>Interaction of local and global buckling</li>
+                      </ul>
+                      <p class="mt-2 text-gray-700">
+                        The critical stress depends on the slenderness ratio (KL/r) and is calculated using column curves in design codes.
+                      </p>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Compression member diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Flexural Member Design</h4>
+                  <p class="text-gray-700">
+                    Beams are designed to resist bending moments and shear forces. The design considers:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2">
+                    <li>Yielding (plastic moment capacity): Mp = Fy × Z</li>
+                    <li>Lateral-torsional buckling</li>
+                    <li>Local buckling of compression flange and web</li>
+                    <li>Shear capacity</li>
+                    <li>Deflection limitations</li>
+                  </ul>
+                  <p class="mt-2 text-gray-700">
+                    Where Z is the plastic section modulus.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Connection Design</h4>
+                  <p class="text-gray-700">
+                    Steel connections transfer forces between members and can be:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2">
+                    <li>Bolted connections (bearing-type, slip-critical)</li>
+                    <li>Welded connections (fillet welds, groove welds)</li>
+                    <li>Simple (shear) connections</li>
+                    <li>Moment connections (fully restrained, partially restrained)</li>
+                  </ul>
+                  <p class="mt-2 text-gray-700">
+                    Connection design must consider all possible failure modes, including bolt shear, bearing, block shear, and weld strength.
+                  </p>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'examples'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Practical Examples</h3>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Tension Member Design Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Design a tension member using an ASTM A36 steel angle (Fy = 36 ksi, Fu = 58 ksi) to resist a factored tensile load of 120 kips. The member will be connected with bolts through one leg.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Required area for yielding: Ag ≥ Pu/(ΦFy) = 120/(0.9×36) = 3.70 in²</li>
+                      <li>Try L5×3×3/8 with Ag = 2.86 in²</li>
+                      <li>Check fracture at net section with U = 0.85 for angles</li>
+                      <li>Ae = U×An = 0.85×(2.86-0.5×0.375) = 2.32 in²</li>
+                      <li>ΦPn = Φ×Fu×Ae = 0.75×58×2.32 = 101 kips &lt; 120 kips (Not adequate)</li>
+                      <li>Try L6×4×1/2 with Ag = 4.75 in²</li>
+                      <li>Final check shows this section is adequate</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Tension member example" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Beam Design Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Design a simply supported beam with a span of 24 ft to carry a uniform dead load of 1.2 kips/ft and a uniform live load of 2.0 kips/ft. Use ASTM A992 steel (Fy = 50 ksi).
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Factored load: wu = 1.2×1.2 + 1.6×2.0 = 4.64 kips/ft</li>
+                      <li>Maximum moment: Mu = wu×L²/8 = 4.64×24²/8 = 334.1 kip-ft</li>
+                      <li>Required plastic section modulus: Zx ≥ Mu/(ΦFy) = 334.1×12/(0.9×50) = 89.1 in³</li>
+                      <li>Select W18×55 with Zx = 98.3 in³</li>
+                      <li>Check lateral-torsional buckling</li>
+                      <li>Check deflection: Δ = 5wL⁴/(384EI) ≤ L/360</li>
+                      <li>Final selection: W18×55 is adequate</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Beam design example" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        {/if}
+  
+        <!-- Tab Content for Prestressed Concrete Design -->
+        {#if selectedModule === 'prestressed'}
+          {#if activeTab === 'introduction'}
+            <div class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="text-lg sm:text-xl font-semibold mb-3">What is Prestressed Concrete?</h3>
+                  <p class="text-gray-700 mb-4">
+                    Prestressed concrete is a form of concrete used in construction that is "pre-stressed" by being placed under compression prior to supporting any loads. This compression is produced by tensioning high-strength steel, which is then anchored to the concrete.
+                  </p>
+                  <p class="text-gray-700">
+                    This technique allows concrete,which is strong in compression but weak in tension,to resist tensile stresses.By introducing compressive stresses that counteract the tensile stresses that will occur under loading,prestressed concrete can span longer distances and carry heavier loads than conventional reinforced concrete.
+                  </p>
+                </div>
+                <div class="flex justify-center items-center">
+                  <!-- <img src="/placeholder.svg?height=250&width=350" alt="Prestressed concrete diagram" class="rounded-lg shadow-md max-w-full h-auto" /> -->
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-2">Learning Objectives</h4>
+                <p class="text-gray-600 mb-3">After completing this module, students will be able to:</p>
+                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Understand the fundamental concepts of prestressing</li>
+                  <li>Differentiate between pre-tensioning and post-tensioning methods</li>
+                  <li>Analyze prestressed concrete sections for flexure and shear</li>
+                  <li>Design prestressed concrete beams and slabs</li>
+                  <li>Calculate prestress losses in tendons</li>
+                  <li>Evaluate serviceability requirements for prestressed members</li>
+                </ul>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'principles'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Basic Principles of Prestressed Concrete</h3>
+  
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Concept of Prestressing</h4>
+                  <p class="text-gray-700">
+                    Prestressing introduces compressive stresses in concrete elements to counteract the tensile stresses that will develop under service loads. This is achieved by tensioning high-strength steel tendons.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    The basic principle can be visualized as creating an "internal force system" that opposes external loads, allowing concrete to remain primarily in compression.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Prestressing Methods</h4>
+                  <p class="text-gray-700">
+                    There are two primary methods of prestressing:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li><strong>Pre-tensioning:</strong> Tendons are tensioned before concrete is cast</li>
+                    <li><strong>Post-tensioning:</strong> Tendons are tensioned after concrete has hardened</li>
+                  </ul>
+                  <p class="mt-2 text-gray-700">
+                    Each method has specific applications and advantages depending on the construction requirements.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Materials</h4>
+                  <p class="text-gray-700">
+                    Prestressed concrete requires specialized materials:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>High-strength concrete (typically 5,000-8,000 psi or higher)</li>
+                    <li>High-strength prestressing steel (tendons, strands, or bars)</li>
+                    <li>Anchorage systems for post-tensioning</li>
+                    <li>Ducts for post-tensioning tendons</li>
+                    <li>Grouting materials for bonded post-tensioning</li>
+                  </ul>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Prestress Losses</h4>
+                  <p class="text-gray-700">
+                    Prestress losses occur over time due to various factors, reducing the effective prestressing force. These losses must be accurately estimated and accounted for in design.
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>Elastic shortening of concrete</li>
+                    <li>Shrinkage of concrete</li>
+                    <li>Creep of concrete</li>
+                    <li>Relaxation of prestressing steel</li>
+                    <li>Friction losses during post-tensioning</li>
+                    <li>Anchorage set losses</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'methods'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Prestressed Concrete Design Methods</h3>
+  
+              <div class="space-y-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Flexural Analysis</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        Flexural analysis of prestressed concrete sections involves determining the moment capacity and stress distribution under various loading conditions. Key steps include:
+                      </p>
+                      <ul class="list-disc pl-5 mt-2">
+                        <li>Determining the effective prestressing force after losses</li>
+                        <li>Calculating the stress distribution at transfer and service loads</li>
+                        <li>Checking the allowable stresses in concrete and steel</li>
+                        <li>Calculating the nominal flexural strength (Mn)</li>
+                        <li>Verifying the design strength (ΦMn) against the factored moment (Mu)</li>
+                      </ul>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Flexural analysis diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Shear Analysis</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        Shear analysis of prestressed concrete members involves determining the shear capacity and designing shear reinforcement if needed. Key considerations include:
+                      </p>
+                      <ul class="list-disc pl-5 mt-2">
+                        <li>Calculating the shear force due to prestressing (Vp)</li>
+                        <li>Determining the concrete contribution to shear strength (Vc)</li>
+                        <li>Calculating the required shear reinforcement (Av)</li>
+                        <li>Checking the maximum shear capacity (Vmax)</li>
+                      </ul>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Shear analysis diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Deflection Analysis</h4>
+                  <p class="text-gray-700">
+                    Deflection analysis is essential to ensure that prestressed concrete members meet serviceability requirements. Key aspects include:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2">
+                    <li>Calculating the immediate deflection due to prestressing and self-weight</li>
+                    <li>Estimating the long-term deflection due to creep and shrinkage</li>
+                    <li>Checking the total deflection against allowable limits</li>
+                    <li>Providing camber if needed to offset deflections</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'examples'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Practical Examples</h3>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Flexural Design Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Design a prestressed concrete beam with a span of 40 ft to carry a uniform live load of 2.0 kips/ft. Use concrete with f'c = 5,000 psi and prestressing steel with fpu = 270 ksi.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Determine the required section modulus (S) based on allowable stresses</li>
+                      <li>Select a suitable beam section (e.g., AASHTO I-beam)</li>
+                      <li>Calculate the required prestressing force (P)</li>
+                      <li>Determine the number and size of prestressing strands</li>
+                      <li>Check the stress limits at transfer and service loads</li>
+                      <li>Verify the design strength (ΦMn) against the factored moment (Mu)</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Flexural design example" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Shear Design Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Design the shear reinforcement for a prestressed concrete beam with a factored shear force (Vu) of 100 kips. The concrete contribution to shear strength (Vc) is 60 kips, and the prestressing force contributes 20 kips (Vp).
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Calculate the required shear reinforcement: Av = (Vu - ΦVc - ΦVp)/(Φfy d/s)</li>
+                      <li>Select appropriate size and spacing of stirrups</li>
+                      <li>Check the maximum stirrup spacing requirements</li>
+                      <li>Verify the design shear strength (ΦVn) against the factored shear force (Vu)</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Shear design example" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        {/if}
+  
+        <!-- Tab Content for Statics of Rigid Bodies -->
+        {#if selectedModule === 'statics'}
+          {#if activeTab === 'introduction'}
+            <div class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="text-lg sm:text-xl font-semibold mb-3">What is Statics of Rigid Bodies?</h3>
+                  <p class="text-gray-700 mb-4">
+                    Statics of Rigid Bodies is a branch of mechanics that deals with the analysis of forces acting on rigid bodies in equilibrium. It focuses on determining the conditions under which a rigid body remains at rest or moves with constant velocity.
+                  </p>
+                  <p class="text-gray-700">
+                    This field is fundamental to structural engineering, mechanical engineering, and other disciplines where understanding the behavior of structures and machines under static loads is crucial.
+                  </p>
+                </div>
+                <div class="flex justify-center items-center">
+                  <!-- <img src="/placeholder.svg?height=250&width=350" alt="Statics diagram" class="rounded-lg shadow-md max-w-full h-auto" /> -->
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-2">Learning Objectives</h4>
+                <p class="text-gray-600 mb-3">After completing this module, students will be able to:</p>
+                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Understand the concepts of force, moment, and equilibrium</li>
+                  <li>Apply the equations of equilibrium to solve static problems</li>
+                  <li>Analyze trusses, frames, and machines under static loads</li>
+                  <li>Determine reactions at supports and internal forces in members</li>
+                  <li>Calculate centroids and moments of inertia</li>
+                  <li>Apply principles of friction to solve static problems</li>
+                </ul>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'principles'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Basic Principles of Statics</h3>
+  
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Force and Moment</h4>
+                  <p class="text-gray-700">
+                    A force is a vector quantity that tends to cause motion or change the motion of a body. A moment is the tendency of a force to rotate a body about an axis.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    The moment of a force about a point is calculated as the cross product of the position vector from the point to the line of action of the force and the force vector:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>M = r × F</p>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Equilibrium</h4>
+                  <p class="text-gray-700">
+                    A rigid body is in equilibrium when the sum of all forces and moments acting on it is zero. This is expressed by the equations of equilibrium:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>∑F = 0, ∑M = 0</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    In two dimensions, these equations can be written as:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>∑Fx = 0, ∑Fy = 0, ∑Mz = 0</p>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Free-Body Diagrams</h4>
+                  <p class="text-gray-700">
+                    A free-body diagram (FBD) is a graphical representation of a rigid body showing all external forces and moments acting on it.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    Drawing a correct FBD is essential for solving static problems. It helps to visualize the forces and moments and apply the equations of equilibrium correctly.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Support Reactions</h4>
+                  <p class="text-gray-700">
+                    Supports provide constraints that prevent a rigid body from moving or rotating freely. These constraints result in support reactions, which are forces and moments exerted by the supports on the body.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    Common types of supports include:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>Pin supports (provide two force reactions)</li>
+                    <li>Roller supports (provide one force reaction)</li>
+                    <li>Fixed supports (provide two force reactions and one moment reaction)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'methods'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Methods for Solving Static Problems</h3>
+  
+              <div class="space-y-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Method of Joints (Trusses)</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        The method of joints is used to analyze truss structures by considering the equilibrium of each joint.
+                      </p>
+                      <ol class="list-decimal pl-5 mt-2">
+                        <li>Draw a free-body diagram of each joint</li>
+                        <li>Apply the equations of equilibrium (∑Fx = 0, ∑Fy = 0) to each joint</li>
+                        <li>Solve for the unknown forces in the members connected to the joint</li>
+                        <li>Repeat for all joints in the truss</li>
+                      </ol>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Method of joints diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Method of Sections (Trusses)</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        The method of sections is used to determine the forces in specific members of a truss by cutting the truss with a section and considering the equilibrium of one part.
+                      </p>
+                      <ol class="list-decimal pl-5 mt-2">
+                        <li>Cut the truss with a section passing through the members of interest</li>
+                        <li>Draw a free-body diagram of one part of the truss</li>
+                        <li>Apply the equations of equilibrium (∑Fx = 0, ∑Fy = 0, ∑Mz = 0) to the part</li>
+                        <li>Solve for the unknown forces in the members cut by the section</li>
+                      </ol>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Method of sections diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Analysis of Frames and Machines</h4>
+                  <p class="text-gray-700">
+                    Frames and machines are structures composed of multiple members connected by pins or hinges. To analyze these structures:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2">
+                    <li>Draw a free-body diagram of the entire structure</li>
+                    <li>Determine the external reactions at the supports</li>
+                    <li>Disassemble the structure and draw free-body diagrams of each member</li>
+                    <li>Apply the equations of equilibrium to each member</li>
+                    <li>Solve for the unknown forces and moments at the connections</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'examples'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Practical Examples</h3>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Simple Beam Analysis</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      A simply supported beam of length L = 6m carries a uniformly distributed load of 5 kN/m over its entire length. Determine the reactions at the supports.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Draw a free-body diagram of the beam</li>
+                      <li>Apply the equations of equilibrium: ∑Fy = 0, ∑Mz = 0</li>
+                      <li>∑Fy = RA + RB - (5 kN/m)(6 m) = 0</li>
+                      <li>∑Mz = RB(6 m) - (5 kN/m)(6 m)(3 m) = 0</li>
+                      <li>Solving these equations, we get: RA = 15 kN, RB = 15 kN</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Simple beam diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Truss Analysis Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      Determine the forces in members AB and BC of the truss shown.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Use the method of joints at joint B</li>
+                      <li>∑Fx = FAB + FBC cos(60°) = 0</li>
+                      <li>∑Fy = FBC sin(60°) - 10 kN = 0</li>
+                      <li>Solving these equations, we get: FBC = 11.55 kN (Tension), FAB = -5.77 kN (Compression)</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Truss example diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        {/if}
+  
+        <!-- Tab Content for Dynamics of Rigid Bodies -->
+        {#if selectedModule === 'dynamics'}
+          {#if activeTab === 'introduction'}
+            <div class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="text-lg sm:text-xl font-semibold mb-3">What is Dynamics of Rigid Bodies?</h3>
+                  <p class="text-gray-700 mb-4">
+                    Dynamics of Rigid Bodies is a branch of mechanics that deals with the motion of rigid bodies under the influence of forces. It focuses on analyzing the relationship between forces, mass, and acceleration.
+                  </p>
+                  <p class="text-gray-700">
+                    This field is essential for understanding the behavior of moving objects, machines, and systems, and it is widely applied in mechanical engineering, aerospace engineering, and robotics.
+                  </p>
+                </div>
+                <div class="flex justify-center items-center">
+                  <!-- <img src="/placeholder.svg?height=250&width=350" alt="Dynamics diagram" class="rounded-lg shadow-md max-w-full h-auto" /> -->
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-2">Learning Objectives</h4>
+                <p class="text-gray-600 mb-3">After completing this module, students will be able to:</p>
+                <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Understand the concepts of kinematics and kinetics</li>
+                  <li>Apply Newton's laws of motion to solve dynamic problems</li>
+                  <li>Analyze the motion of rigid bodies in translation and rotation</li>
+                  <li>Calculate work, energy, and power</li>
+                  <li>Apply the principles of impulse and momentum</li>
+                  <li>Analyze vibrations of mechanical systems</li>
+                </ul>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'principles'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Basic Principles of Dynamics</h3>
+  
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Kinematics</h4>
+                  <p class="text-gray-700">
+                    Kinematics is the study of motion without considering the forces that cause it. It involves describing the position, velocity, and acceleration of a body as functions of time.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    Key concepts in kinematics include:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2 text-gray-700">
+                    <li>Displacement</li>
+                    <li>Velocity</li>
+                    <li>Acceleration</li>
+                    <li>Angular displacement</li>
+                    <li>Angular velocity</li>
+                    <li>Angular acceleration</li>
+                  </ul>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Kinetics</h4>
+                  <p class="text-gray-700">
+                    Kinetics is the study of the relationship between forces and motion. It involves applying Newton's laws of motion to analyze the behavior of moving bodies.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    Newton's second law of motion states that the sum of the forces acting on a body is equal to the mass of the body times its acceleration:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>∑F = ma</p>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Work and Energy</h4>
+                  <p class="text-gray-700">
+                    Work is the energy transferred to or from an object by a force acting on it. The work done by a force is equal to the force times the displacement in the direction of the force.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    Energy is the capacity to do work. Kinetic energy is the energy of motion, and potential energy is the energy of position.
+                  </p>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-2">Impulse and Momentum</h4>
+                  <p class="text-gray-700">
+                    Impulse is the change in momentum of an object. Momentum is the product of the mass of an object and its velocity.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    The impulse-momentum theorem states that the impulse acting on an object is equal to the change in its momentum:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>∫F dt = Δp</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'methods'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Methods for Solving Dynamic Problems</h3>
+  
+              <div class="space-y-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Newton's Second Law</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        Newton's second law of motion is the fundamental principle for solving dynamic problems. It states that the sum of the forces acting on a body is equal to the mass of the body times its acceleration:
+                      </p>
+                      <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                        <p>∑F = ma</p>
+                      </div>
+                      <p class="mt-2 text-gray-700">
+                        To solve dynamic problems using Newton's second law:
+                      </p>
+                      <ol class="list-decimal pl-5 mt-2">
+                        <li>Draw a free-body diagram of the body</li>
+                        <li>Apply Newton's second law in component form (∑Fx = max, ∑Fy = may)</li>
+                        <li>Solve for the unknown forces or accelerations</li>
+                      </ol>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Newton's second law diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Work-Energy Principle</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                      <p class="text-gray-700">
+                        The work-energy principle states that the work done on a body is equal to the change in its kinetic energy:
+                      </p>
+                      <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                        <p>U = ΔT</p>
+                      </div>
+                      <p class="mt-2 text-gray-700">
+                        Where U is the work done and ΔT is the change in kinetic energy.
+                      </p>
+                      <p class="mt-2 text-gray-700">
+                        To solve dynamic problems using the work-energy principle:
+                      </p>
+                      <ol class="list-decimal pl-5 mt-2">
+                        <li>Determine the initial and final kinetic energies of the body</li>
+                        <li>Calculate the work done by all forces acting on the body</li>
+                        <li>Apply the work-energy principle to solve for the unknown quantities</li>
+                      </ol>
+                    </div>
+                    <div class="flex justify-center items-center">
+                      <img src="/placeholder.svg?height=150&width=150" alt="Work-energy principle diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                    </div>
+                  </div>
+                </div>
+  
+                <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <h4 class="font-medium text-lg mb-3">Impulse-Momentum Principle</h4>
+                  <p class="text-gray-700">
+                    The impulse-momentum principle states that the impulse acting on a body is equal to the change in its momentum:
+                  </p>
+                  <div class="bg-gray-100 p-3 rounded-md mt-2 text-center">
+                    <p>∫F dt = Δp</p>
+                  </div>
+                  <p class="mt-2 text-gray-700">
+                    Where ∫F dt is the impulse and Δp is the change in momentum.
+                  </p>
+                  <p class="mt-2 text-gray-700">
+                    To solve dynamic problems using the impulse-momentum principle:
+                  </p>
+                  <ul class="list-disc pl-5 mt-2">
+                    <li>Determine the initial and final momenta of the body</li>
+                    <li>Calculate the impulse acting on the body</li>
+                    <li>Apply the impulse-momentum principle to solve for the unknown quantities</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {/if}
+  
+          {#if activeTab === 'examples'}
+            <div class="space-y-6">
+              <h3 class="text-lg sm:text-xl font-semibold mb-3">Practical Examples</h3>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Projectile Motion Example</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      A projectile is launched with an initial velocity of 20 m/s at an angle of 30 degrees above the horizontal. Determine the range of the projectile.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Resolve the initial velocity into horizontal and vertical components: v0x = 20 cos(30°) = 17.32 m/s, v0y = 20 sin(30°) = 10 m/s</li>
+                      <li>Determine the time of flight: t = 2v0y/g = 2(10 m/s)/(9.81 m/s²) = 2.04 s</li>
+                      <li>Calculate the range: R = v0x t = (17.32 m/s)(2.04 s) = 35.33 m</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Projectile motion diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+  
+              <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <h4 class="font-medium text-lg mb-3">Block Sliding Down an Inclined Plane</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-gray-700 mb-3">
+                      A block of mass 5 kg slides down an inclined plane with an angle of 25 degrees. The coefficient of kinetic friction between the block and the plane is 0.2. Determine the acceleration of the block.
+                    </p>
+                    <p class="font-medium">Solution:</p>
+                    <ol class="list-decimal pl-5 mt-1 text-gray-700">
+                      <li>Draw a free-body diagram of the block</li>
+                      <li>Apply Newton's second law in component form: ∑Fx = mg sin(25°) - fk = max, ∑Fy = N - mg cos(25°) = 0</li>
+                      <li>Calculate the friction force: fk = μk N = μk mg cos(25°) = (0.2)(5 kg)(9.81 m/s²) cos(25°) = 8.88 N</li>
+                      <li>Solve for the acceleration: ax = (mg sin(25°) - fk)/m = ((5 kg)(9.81 m/s²) sin(25°) - 8.88 N)/(5 kg) = 2.27 m/s²</li>
+                    </ol>
+                  </div>
+                  <div class="flex justify-center items-center">
+                    <img src="/placeholder.svg?height=200&width=300" alt="Inclined plane diagram" class="rounded-lg shadow-md max-w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        {/if}
+      </div>
+    </div>
+  </div>
+  {/if}
+  
+  <!-- Course Aid Modal -->
+  {#if selectedSubject}
+  <div transition:fade={{ duration: 200 }} class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+    <div class="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl" transition:slide={{ duration: 300, easing: quintOut }}>
+      <div class="sticky top-0 bg-white z-10 flex justify-between items-center p-3 sm:p-4 md:p-6 border-b">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800">
+          {subjects.find(s => s.id === selectedSubject)?.name}
+        </h2>
+        <button 
+          class="p-2 rounded-full hover:bg-gray-100" 
+          on:click={() => selectedSubject = null}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <div class="p-3 sm:p-4 md:p-6">
+        <!-- Tabs -->
+        <div class="mb-6 border-b">
+          <div class="flex flex-wrap -mb-px">
+            <button 
+              class="inline-block p-2 sm:p-4 border-b-2 {activeSubjectView === 'module' ? 'border-blue-500 text-blue-600' : 'border-transparent hover:border-gray-300 text-gray-500 hover:text-gray-600'}"
+              on:click={() => setActiveSubjectView('module')}
+            >
+              Module
+            </button>
+            <button 
+              class="inline-block p-2 sm:p-4 border-b-2 {activeSubjectView === 'problems' ? 'border-blue-500 text-blue-600' : 'border-transparent hover:border-gray-300 text-gray-500 hover:text-gray-600'}"
+              on:click={() => setActiveSubjectView('problems')}
+            >
+              Problems
+            </button>
+            <button 
+              class="inline-block p-2 sm:p-4 border-b-2 {activeSubjectView === 'calculator' ? 'border-blue-500 text-blue-600' : 'border-transparent hover:border-gray-300 text-gray-500 hover:text-gray-600'}"
+              on:click={() => setActiveSubjectView('calculator')}
+            >
+              Calculator
+            </button>
+          </div>
+        </div>
+  
+        <!-- Module View -->
+        {#if activeSubjectView === 'module'}
+          {#if courseAidContent[selectedSubject] && courseAidContent[selectedSubject].module}
+            <div class="space-y-4">
+              <h3 class="text-lg sm:text-xl font-semibold">{courseAidContent[selectedSubject].module.title}</h3>
+              <p class="text-gray-700">{courseAidContent[selectedSubject].module.description}</p>
+  
+              <h4 class="font-medium">Topics:</h4>
+              <ul class="list-disc pl-5 text-gray-700">
+                {#each courseAidContent[selectedSubject].module.topics as topic}
+                  <li>{topic.title}: {topic.description}</li>
+                {/each}
+              </ul>
+  
+              <h4 class="font-medium">Resources:</h4>
+              <ul class="list-disc pl-5 text-gray-700">
+                {#each courseAidContent[selectedSubject].module.resources as resource}
+                  <li>{resource.type}: <a href={resource.link} class="text-blue-500 hover:underline">{resource.title}</a> by {resource.author}</li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+        {/if}
+  
+        <!-- Problems View -->
+        {#if activeSubjectView === 'problems'}
+          {#if courseAidContent[selectedSubject] && courseAidContent[selectedSubject].problems}
+            <div class="space-y-4">
+              {#each courseAidContent[selectedSubject].problems as problem}
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h4 class="font-medium">{problem.title}</h4>
+                  <p class="text-sm text-gray-500">{problem.description}</p>
+                  <p class="mt-2">{problem.problem}</p>
+                  <p class="mt-2 text-gray-600">Hint: {problem.hint}</p>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        {/if}
+  
+        <!-- Calculator View -->
+        {#if activeSubjectView === 'calculator'}
+          {#if courseAidContent[selectedSubject] && courseAidContent[selectedSubject].calculator}
+            <div class="space-y-4">
+              {#each courseAidContent[selectedSubject].calculator.tools as tool, toolIndex}
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h4 class="font-medium">{tool.name}</h4>
+                  <p class="text-sm text-gray-500">{tool.description}</p>
+  
+                  <div class="mt-4 space-y-2">
+                    {#each tool.inputs as input}
+                      <div>
+                        <label for={input.label} class="block text-sm font-medium text-gray-700">{input.label}</label>
+                        <input 
+                          type={input.type} 
+                          id={input.label} 
+                          class="mt-1 p-2 w-full border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          bind:value={calculatorInputs[input.label]}
+                        />
+                      </div>
+                    {/each}
+                  </div>
+  
+                  <button class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" on:click={() => calculateResult(selectedSubject, toolIndex)}>
+                    Calculate
+                  </button>
+  
+                  {#if calculatorResult}
+                    <div class="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-md">
+                      <p class="font-medium">Result: {calculatorResult.value} {calculatorResult.unit}</p>
+                      <p class="text-sm">{calculatorResult.explanation}</p>
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+        {/if}
+      </div>
+    </div>
+  </div>
+  {/if}
